@@ -52,7 +52,6 @@ View(v17)
 
 # B25047_002 is "Estimate!!Total!!Complete plumbing facilities	PLUMBING FACILITIES FOR ALL HOUSING UNITS"
 
-
 # Grab a shapefile-geometry thingy that shows Census tracts for Georgia and shows two variables for each tract, B25047_002 (total housing units with complete plumbing facilities) and B25001_001E (total housing units). I believe this is from the Tigris R package. 
 toilet <- get_acs(geography = "tract", variables = c("B25047_002", "B25001_001E"),
                   state = "GA", geometry = TRUE)
@@ -67,7 +66,6 @@ View(plumbing)
 
 # Pull down from the Census API the info for each tract in Georgia (state:13) for variable B25001_001, save them in a table called hus. This is a table with just the total number of housing units. I believe this uses the Census API R package.
 
-
 hus <- getCensus(name = "acs/acs5",
                  vintage = 2017,
                  vars = c("NAME", "B25001_001E"),
@@ -78,7 +76,7 @@ View(hus)
 
 # So, we're going to need to marry up our plumbing table with our hus table. And we need to be able to join it on the Tract ID number. But two different tables were grabbed by two different R packages and they each express the Tract ID in a different way. Plumbing has it as an 11-digit number; hus has it in 3 separate fields, one for the state FIPS code, one for the county FIPS code and then one field for the tract ID itself. 
 
-# so to make these join up, we need to go into hus and concatenate the state, county and tract ID numbers into one new column. 
+# So, to make these join up, we need to go into hus and concatenate the state, county and tract ID numbers into one new column. 
 
 # We'll do that with paste0 here. We use paste0 here instead of plain old paste because paste0 won't put spaces between the original data elements. 
 # More at https://stackoverflow.com/questions/18115550/combine-two-or-more-columns-in-a-dataframe-into-a-new-column-with-a-new-name
