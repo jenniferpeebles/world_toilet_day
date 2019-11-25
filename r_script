@@ -1,0 +1,208 @@
+install.packages(c("ggplot2", "devtools", "dplyr", "stringr"))
+install.packages(c("maps", "mapdata", "ggmap", "maps"))
+install.packages("tidyverse")
+# Note some of the packages specifically named here are included in the tidyverse package, so this is list is duplicative. Will fix later
+install.packages("swirl", dependencies = TRUE)
+install.packages("digest")
+install.packages("censusapi")
+# this installs the github version of ggmap, this is supposed to pull in a version from author dkahle including a fix
+# More at https://eriqande.github.io/rep-res-web/lectures/making-maps-with-R.html
+devtools::install_github("dkahle/ggmap")
+install.packages("tidycensus")
+install.packages("tigris")
+install.packages("sf")
+install.packages("viridis")
+
+# now load a ton of libraries
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(ggmap)
+library(maps)
+library(mapdata)
+library(swirl)
+library(digest)
+library(viridis)
+library(censusapi)
+library(tidycensus)
+library(tidyverse)
+library(tigris)
+library(sf)
+library(grid)
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+# Should put in your Census API key here in line below
+census_api_key("your_Census_API_key_goes_here_between_the_quote_marks")
+
+# Add key to .Renviron
+# Should put in your Census API key here in line below
+Sys.setenv(CENSUS_KEY="your_Census_API_key_goes_here_between_the_quote_marks")
+# Reload .Renviron
+readRenviron("~/.Renviron")
+# Check to see that the expected key is output in your R console
+Sys.getenv("CENSUS_KEY")
+
+# Check to see what your working directory is, in case we need to change it
+getwd()
+
+# these next 2 lines will give you the variables that are available from the Census API in case you need to adjust them for some reason
+v17 <- load_variables(2017, "acs5", cache = TRUE)
+
+View(v17)
+
+# B25047_002 is "Estimate!!Total!!Complete plumbing facilities	PLUMBING FACILITIES FOR ALL HOUSING UNITS"
+
+
+# Grab a shapefile-geometry thingy that shows Census tracts for Georgia and shows two variables for each tract, B25047_002 (total housing units with complete plumbing facilities) and B25001_001E (total housing units). I believe this is from the Tigris R package. 
+toilet <- get_acs(geography = "tract", variables = c("B25047_002", "B25001_001E"),
+                  state = "GA", geometry = TRUE)
+
+View(toilet)
+
+# Pull out just the records for variable B25047_002, saving them in a table called plumbing. This will be a table with geometry that just gives us the # of total housing units with complete plumbing facilities. 
+
+plumbing <- filter(toilet, grepl("B25047_002", variable, fixed = TRUE))
+
+View(plumbing)
+
+# Pull down from the Census API the info for each tract in Georgia (state:13) for variable B25001_001, save them in a table called hus. This is a table with just the total number of housing units. I believe this uses the Census API R package.
+
+
+hus <- getCensus(name = "acs/acs5",
+                 vintage = 2017,
+                 vars = c("NAME", "B25001_001E"),
+                 region = "tract:*",
+                 regionin = "state:13")
+
+View(hus)
+
+# So, we're going to need to marry up our plumbing table with our hus table. And we need to be able to join it on the Tract ID number. But two different tables were grabbed by two different R packages and they each express the Tract ID in a different way. Plumbing has it as an 11-digit number; hus has it in 3 separate fields, one for the state FIPS code, one for the county FIPS code and then one field for the tract ID itself. 
+
+# so to make these join up, we need to go into hus and concatenate the state, county and tract ID numbers into one new column. 
+
+# We'll do that with paste0 here. We use paste0 here instead of plain old paste because paste0 won't put spaces between the original data elements. 
+# More at https://stackoverflow.com/questions/18115550/combine-two-or-more-columns-in-a-dataframe-into-a-new-column-with-a-new-name
+# We'll call the new field in the hus table geoid. 
+hus$geoid <- paste0(hus$state, hus$county, hus$tract, sept="")
+
+# I want to take a look at the two tables one more time.
+
+View(hus)
+
+View(plumbing)
+
+# Now we need to join up the tables on the geoid fields. In R, they don't call it join, they call it merge, for whatever reason. 
+
+# We'll need to make sure to tell R which fields are the right ones to join on in which table. 
+
+# And we'll call the resulting table plumbing_hus
+
+# More on merge at https://stackoverflow.com/questions/1299871/how-to-join-merge-data-frames-inner-outer-left-right
+# and at https://stat.ethz.ch/R-manual/R-devel/library/base/html/merge.html
+plumbing_hus <- merge(x = plumbing, y=hus, by.x = "GEOID", by.y = "geoid", all = TRUE)
+
+View(plumbing_hus)
+
+# So now we need to calculate our percentage of total housing units that have complete plumbing. So we need to do some math.
+
+# Reminder: B25001_001E is the variable for total housing units.
+# Meanwhile, the "estimate" field in plumbing_hus is the number with complete plumbing units. You may want to rename it something else. 
+
+# So we'll divide the estimate column in plumbing_hus (the # of housing units with complete plumbing) by variable B25001_001E (the total number of housing units), and then we'll take the result and multiply it by 100. 
+
+# We'll save the result in a new field called pct_with_comp_plumbing. 
+
+plumbing_hus$pct_with_comp_plumbing <- (plumbing_hus$estimate/plumbing_hus$B25001_001E)*100
+
+View(plumbing_hus)
+
+# OK, so now we've got the stat we need. Let's try to map it. 
+
+ggplot(plumbing_hus) +
+  # https://stackoverflow.com/questions/40349676/how-can-i-zoom-in-a-ggmap-plot-that-uses-shapefiles
+  coord_map("mercator", xlim = c(-88, -90),  ylim = c(34, 35), ratio = 0.5) +
+  # Warning: show.legend=F removes ALL the legends :()
+  geom_sf(aes(fill=pct_with_comp_plumbing), show.legend=NA) +
+  # I believe the color scale here is from the Viridis package. 
+  # scale_fill_continous-viridis from https://ggplot2.tidyverse.org/reference/scale_colour_continuous.html
+  scale_fill_continuous(name="Percentage", type="viridis", na.value = "grey50") +
+  theme_void() +
+  labs(title="Housing units with complete plumbing facilities")
+
+# End of the first map
+
+# So that made a nice map with the color scale showing 100% in yellow and the 70%s in blue, which is kind of reverse of what I'd like. But otherwise, the map looks pretty nice. 
+
+# What if we want to look at the tracts with the lowest 1% of our complete-plumbing-faciliites percentage? This will pull out that lowest 1% (which is like 20-odd tracts). We'll use the ntile function and we'll save it as a new table called lowest_1_pct_tracts. 
+
+lowest_1_pct_tracts <- mutate(plumbing_hus, percentile_rank = ntile(plumbing_hus$pct_with_comp_plumbing,100))
+
+lowest_1_pct_tracts <- lowest_1_pct_tracts %>% filter(percentile_rank== 1)
+
+View(lowest_1_pct_tracts)
+
+# One thing I wish our map had was showing the county boundaries. Let's try to show that on the map. To do that, I need a file showing the geometry of the county outlines. I'm going to cheat and just copy the snippet of code I used earlier that will pull the geometry down with Tigris, but I'll change the geography variable from "tract" to "county." We'll save the new file as hus_co. 
+
+hus_co <- get_acs(geography = "county", variables = c("B25047_002"),
+                  state = "GA", geometry = TRUE)
+
+View(hus_co)
+
+# That looks nice. But I know I'm going to want to eventualy label the counties, and that geometry file spells out each county name with " County, Georgia" on the end. Let's cut that off. 
+
+hus_co <- hus_co %>% 
+  mutate(co_name = str_replace(NAME, " County, Georgia", ""))
+
+View(hus_co)
+
+# OK, let's try to map it again.
+
+ggplot(plumbing_hus) +
+  # https://stackoverflow.com/questions/40349676/how-can-i-zoom-in-a-ggmap-plot-that-uses-shapefiles
+  coord_map("mercator", xlim = c(-84, -84.5),  ylim = c(33.4, 34.2)) +
+  geom_sf(aes(fill=pct_with_comp_plumbing), show.legend=NA) +
+  # Let's reverse the direction of the color scale so that the lowest-percentage tracts show up in yellow and pop out more. We do this with the "trans='reverse'" 
+  scale_fill_continuous(name="Percentage", type="viridis", na.value = "grey50", trans="reverse") +
+  # Empty grid county map here. Size is point size of line. 
+  geom_sf(data=hus_co, colour="black", fill=NA, size=1)+ 
+  theme_void() +
+  labs(title="Housing units with complete plumbing facilities", subtitle="From the 2017 ACS 5-year", caption = "Your caption goes here")
+# End of 2nd map
+
+# In case you're wondering what it look look like if we stripped it down a bit, this is what it would look like
+ggplot(plumbing_hus) +
+  geom_sf(aes(fill=pct_with_comp_plumbing), show.legend=NA, xlim = c(-88, -90),  ylim = c(34, 35))
+
+# One thing about our map, it looks nice, but the tracts in the metro Atlanta area are so crammed together, you can hardly tell what color they are. Let's make another map that just zooms in on them. 
+p <- ggplot() +
+  geom_sf(data = plumbing_hus, aes(fill=pct_with_comp_plumbing), show.legend=NA) +
+  # empty grid county map here. size is point size of line
+  geom_sf(data=hus_co, inherit.aes=FALSE, colour="black", fill=NA, size=1.5)+ 
+  # label the counties with this next time. 
+  geom_sf_text(data=hus_co, aes(label = co_name), colour = "white") +
+  # if you wanted to label each tract, you could with this next line. 
+  #geom_text(data= hus_co,aes(x=X, y=Y, label=NAME),
+  # here we set the boundaries of what we want to show on the map. CRS is the Web Mercator projection (more at https://epsg.io/3857). The X and Ys here can be read, in order, as right side boundary, left side boundary, top boundary, bottom boundary. 
+  coord_sf(datum = st_crs(3857), xlim = c(-83.7, -84.9), ylim = c(33.3, 34.2)) +
+  scale_fill_continuous(name="% of housing\nunits with\ncomplete\nplumbing\nfacilities", type="viridis", na.value = "grey50", trans='reverse') +
+  # Add these NULLs or the map may come out with X and Y labels on the axes. 
+  xlab(NULL) +
+  ylab(NULL) +
+  labs(title="World Toilet Day 2019", subtitle="In Metro Atlanta", caption = "Data: Census ACS 5-year, 2017") +
+  theme(panel.background = element_rect(fill = "white"),
+        # if you want to set the plot.background and plot.margin, you can. I thought this looked better without it, so I've commented them out here. You can see more about these at # plot.background and plot.background etc from https://cedricscherer.netlify.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/#margins. 
+        #plot.background = element_rect(fill = "white", colour="black", size=1),
+        #plot.margin = margin(1, 1, 1, 1, "cm"),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 15, face = "bold",
+                                  margin = margin(0, 0, 5, 0))
+        )
+
+p
+
+# And that's it
+
+#30
