@@ -14,6 +14,8 @@ Diseases like these, like typhoid and cholera, have largely been stamped out in 
 
 All data in this summary is from the 2019 5-year averages of the [American Community Survey](https://www.census.gov/programs-surveys/acs) done by the U.S. Census Bureau.
 
+To use this script, you will need a free API key from the Census. You can [request one at this link](https://api.census.gov/data/key_signup.html).
+
 ACS data is usually released about a year behind. ACS data for 2019 was released in calendar year 2020. Specifically, the 5-year ACS data is usually released in December, and the 5-year ACS data for 2019 was released in December 2020. 
 
 The 5-year average data averages each metric over the previous five years to provide a less herky-jerky result than would be provided with annual data releases. Why do we use the 5-year average data? The Census Bureau only publishes 1-year data for the largest cities and counties in America. For everybody else, we have to use the 5-year data -- or nothing. 
