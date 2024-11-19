@@ -154,8 +154,6 @@ names(us_toilet_totals) <- gsub("moe_estimate", "moe", names(us_toilet_totals)) 
 # Calculate percentages
 us_toilet_pcts1 <- us_toilet_totals %>% mutate(across(3:4, ~ (.x/us_toilet_totals$estimate_total)*100)) %>%  print()
 
-View(us_toilet_pcts1)
-
 names(us_toilet_pcts1)[c(3:4)] <- gsub("estimate_total", "pct", names(us_toilet_pcts1)[c(3:4)]) %>%  print()
 
 ```
