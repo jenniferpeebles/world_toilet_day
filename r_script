@@ -9,50 +9,55 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
+```{r setup, eval = TRUE, echo = FALSE, include = FALSE}
 
-# If you don't have these packages installed, you can uncomment these lines and install them here.
-# Note: some of the packages specifically named here are included in the tidyverse package, so this list is duplicative. My apologies.
+# Reminder: Package to update R is install.packages("installr") and then load library(installr). The command is then updateR().
 
-# install.packages(c("ggplot2", "devtools", "dplyr", "stringr"))
-# install.packages("tidyverse")
-# install.packages("swirl", dependencies = TRUE)
-# install.packages("digest")
-# install.packages("tidycensus")
-# install.packages("cdlTools")
+# Reminder of what packages are automatically loaded in the core tidyverse, as of Dec. 28, 2024: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, and forcats. Also it loads also it loads DBI, haven, httr, readxl, googlesheets4, googledrive, rvest, jsonlite and xml2. More info at https://www.tidyverse.org/packages/
 
-# This next line installs the github version of ggmap, this is supposed to pull in a version from author dkahle including a fix. More at https://eriqande.github.io/rep-res-web/lectures/making-maps-with-R.html
-# devtools::install_github("dkahle/ggmap")
+# Not included in the core tidyverse as of 12/28/24: lubridate, hms, blob, dbplyr, magrittr, glue, or any of the tidymodels packages (modelr/broom), and not reprex. 
 
-# Now, load a ton of libraries
-library(digest)
-library(dplyr)
-library(ggplot2)
-library(grid)
-library(janitor)
-library(knitr)
-library(magrittr)
-library(stringr)
-library(swirl)
-library(tidycensus)
-library(tidyverse)
-library(cdlTools)
+# Load some packages
+packages_core <- c("tidyverse", "janitor", "knitr", "magrittr", "lubridate", "kableExtra")
+# If you're going to be working with census data ...
+packages_census <- c("tidycensus", "tigris")
+#packages_map <- c("sf", "rnaturalearth", "sp")
+packages_specific <- c("digest", "grid", "swirl", "cdlTools")
+# If you need to append packages_census or packages_map to the core list, use append ...
+
+packages <- c(packages_core, packages_census, packages_specific)
+
+
+lapply(packages, function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
+  library(pkg, character.only = TRUE)
+})
+
+# Load the packages listed above
+lapply(packages, library, character.only = TRUE)
+
+# Customize some settings
+options(digits = 3, # three digits behind a decimal
+        scipen = 999, # I always include this now to stop R from giving me numbers in scientific notation. Not sure you will need this here, but I always include it. 
+        stringsAsFactors = FALSE,
+        width = 80
+)
+
+# Customize some knitr options. 
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE, 
+  message = FALSE, 
+  results = "markup",
+  fig.align = "center",
+  fig.width = 6,
+  fig.height = 4,
+  inline = function(x) prettyNum(x, big.mark = ",") # This tells knitr to include commas in big numbers. 
+)
 
 # You should put in your Census API key here in the line below
 #census_api_key("your_Census_API_key_goes_here_between_the_quote_marks")
 
-knitr::opts_chunk$set(echo = TRUE)
-
-# This tells R to round all the numbers to 3 digits. You can change this if you like. 
-options(digits=3)
-
-# I always include this now to stop R from giving me numbers in scientific notation. Not sure you will need this here, but I always include it. 
-options(scipen = 999)
-
-# This tells knitr to include commas in big numbers. 
-knit_hooks$set(inline = function(x) {
-  prettyNum(x, big.mark=",")
-})
 
 ```
 
@@ -62,7 +67,7 @@ knit_hooks$set(inline = function(x) {
 
 We're posting this script in recognition of [World Toilet Day](https://www.un.org/en/observances/toilet-day) -- a day intended to draw greater awareness to the fact that many people in the world live without proper sanitary sewer service. 
 
-Lack of such service brings an increased risk for the spread of numerous diseases. My own grandmother was orphaned at age 3 in the year 1930 when her [widowed young mother](https://www.ancestry.com/family-tree/person/tree/280288/person/-2100736346/facts) died of [typhoid fever](https://en.wikipedia.org/wiki/Typhoid_fever#:~:text=Typhoid%20fever%2C%20also%20known%20as,high%20fever%20over%20several%20days.), a disease that humans contract by drinking water that has been contaminated by human waste, such as when a well is dug too close to an outhouse or latrine. Typhoid also took the life of [my other grandmother's oldest sister](https://www.ancestry.com/family-tree/person/tree/280288/person/-2100736752/facts) at age 13 -- two young lives lost due to lack of running water and proper sanitation in rural Georgia.
+Lack of such service brings an increased risk for the spread of numerous diseases. My own grandmother was orphaned at age 3 in the year 1930 when her [widowed young mother](https://www.ancestry.com/family-tree/person/tree/280288/person/-2100736346/facts) died of [typhoid fever](https://en.wikipedia.org/wiki/Typhoid_fever#:~:text = Typhoid%20fever%2C%20also%20known%20as,high%20fever%20over%20several%20days.), a disease that humans contract by drinking water that has been contaminated by human waste, such as when a well is dug too close to an outhouse or latrine. Typhoid also took the life of [my other grandmother's oldest sister](https://www.ancestry.com/family-tree/person/tree/280288/person/-2100736752/facts) at age 13 -- two young lives lost due to lack of running water and proper sanitation in rural Georgia.
 
 Diseases like these, like typhoid and cholera, have largely been stamped out in the developed world toda due to the adoption of modern sewer and septic systems. But there are still places even in the U.S. where people go without such conveniences every day due to poverty. The United Nations estimates that 2 billion people use a drinking water source that is contaminated with fecal matter. 
 
@@ -77,7 +82,7 @@ The 5-year average data averages each metric over the previous five years to pro
 
 ACS data is an estimate. The confidence interval is 90%. The Census Bureau publishes margins of error for each metric presented here. Always remember, the smaller the sample the estimate is taken from, the wider the margin of error. 
 
-But just to be clear, despite my attempts at toilet humor here, we're not actually counting toilets per se. The Census Bureau questionnaire asks people if their home has "complete" plumbing facilities, which the Census has defined since 1990 as [hot and cold running water and a bath or shower and a working toilet](https://www.census.gov/data/tables/time-series/dec/coh-plumbing.html#:~:text=Complete%20plumbing%20facilities%20are%20defined,requirement%20was%20dropped%20in%201990). So the metric we're examining is the percentage of housing units that have, or lack, complete plumbing facilities. 
+But just to be clear, despite my attempts at toilet humor here, we're not actually counting toilets per se. The Census Bureau questionnaire asks people if their home has "complete" plumbing facilities, which the Census has defined since 1990 as [hot and cold running water and a bath or shower and a working toilet](https://www.census.gov/data/tables/time-series/dec/coh-plumbing.html#:~:text = Complete%20plumbing%20facilities%20are%20defined,requirement%20was%20dropped%20in%201990). So the metric we're examining is the percentage of housing units that have, or lack, complete plumbing facilities. 
 
 Much of the data in this summary specifically comes from ACS table B25047, [which you can read more about at here](https://censusreporter.org/tables/B25047/), "Plumbing Facilities for All Housing Units." 
 
@@ -91,70 +96,113 @@ This summary was formatted using the [knitr package](https://yihui.org/knitr/) a
 
 So, let's tear into the toilet data ... 
 
-```{r more_getting_set_up, eval=TRUE, echo=FALSE, include=FALSE}
+```{r more_getting_set_up, eval = TRUE, echo = FALSE, include = FALSE}
 
 # Clean out all your variables, if you are so inclined. Otherwise, keep this commented-out
-# rm(list=ls()) 
+# rm(list = ls()) 
 
-# Check to see what your working directory is, in case we need to change it
-getwd()
+
 
 # If you want to change the working directory for this script, you can plug in the file path to your folder here. Note: Don't forget to use forward slashes ("/") instead of back slashes ("|") or else R won't be able to make sense of what you're trying to tell it, since back slashes are escape characters. 
 # setwd("your_file_path_here")
 
-# Here's a variable you'll need to change. Type in the name of your state (full name, no abbreviations, no punctation, capitalization is good. If you live in D.C., type in "District of Columbia." If you live in Puerto Rico, type in "Puerto Rico.")
-my_state <- "Georgia"
+base_wd <- "F:/your_file_path_here/dont_forget/the_slashes_must_be_forward_slashes"
+setwd(base_wd)
+if (getwd() != base_wd) stop("Working directory not set correctly!")
 
-# This will take your state name and put it into a string that we can use in regex to find entities in your state. 
-my_state_regexp_string <- paste0(my_state, "$", collapse="") %>% print()
+# Some variables you'll need to change. 
+
+# Type in the name of your state (full name, no abbreviations, no punctation, capitalization is good. If you live in D.C., type in "District of Columbia." If you live in Puerto Rico, type in "Puerto Rico.")
+my_state <- "Georgia"
 
 # Another place to personalize this. We'll use this in the credit lines of the graphics. You change this to your name. 
 my_name <- "Jennifer Peebles-AJC"
 
+# our data year
+data_year <-  2023
+
+# our survey -- this is limited to the choices offered by tidycensus
+our_survey <- "acs5"
+
+
+
+
 ```
 
 
-```{r national_data, eval=TRUE, echo=FALSE, include=FALSE}
 
 
-# Let's grab the variables from the Census API using tidycensus. 
-var22 <- load_variables(2022, "acs5", cache = TRUE) %>%  filter(str_detect(concept, "Plumbing Facilities for All Housing Units"))
 
-our_table <- var22[1,1] %>% substring(1,7) %>% print()
+```{r national_data, eval = TRUE, echo = FALSE, include = FALSE}
 
-# Some notes on variables from the ACS ... 
+# set this to the geography level needed to pull your data; the options are limited to those offered by tidycensus. "us" is the setting for national-level statistics. This variable will be changed throughout this script. 
+data_geo <-  "us"
+
+# This will take your state name and put it into a string that we can use in regex to find entities in your state. 
+my_state_regexp_string <- paste0(my_state, "$", collapse = "") %>% print()
+
+# Some notes on variables from the ACS -- as of the 2023 ACS ... 
 # B25047_001 is the estimate of all housing units ("Estimate!!Total:")
 # B25047_002 is "Estimate!!Total:!!Complete plumbing facilities". I always love how the Census Bureau uses the exclamation points in the variable descriptions. It makes them look like they are JUST SO FREAKIN' EXCITED to tell you about this variable that they just can't stand it. 
 # B25047_003 is "Estimate!!Total:!!Lacking complete plumbing facilities." 
 
-# This function will help us generate our list of variables. We'll reuse it again later on. 
-i <- 1
-varlist <- c()
+# Let's grab the variables from the Census API using tidycensus. 
+var22 <- load_variables(data_year, our_survey, cache = TRUE) %>% 
+  filter(str_detect(concept, "Plumbing Facilities for All Housing Units"))
 
-while (i<=nrow(var22)) {
-    varlist <- c(varlist, i)
-    i <- i+1
-    
-}
+# Extract the table name and construct our variable list.
+table_name <- substr(var22$name[1], 1, 7)
+varlist_full <- paste0(table_name, str_pad(1:nrow(var22), width = 3, pad = "0"))
 
-# Create our list of variables
-varlist_full <- paste(our_table, str_pad(varlist, 3, pad="0"), sep="") %>%  print()
+# Ask tidycensus to obtain our data for us. 
+toilet_data <- get_acs(
+  geography = data_geo,
+  year = data_year,
+  survey = our_survey,
+  variables = varlist_full
+) %>% janitor::clean_names()
 
-# Use tidycensus to get our 3 variables from the 2022 ACS 5-year. 
-toilet <- get_acs(geography = "us", year = 2022, survey = "acs5", variables = varlist_full, geometry = FALSE) %>%  janitor::clean_names() %>%  print()
+# Marry this new table to our variable table. 
+toilet_data_labeled <- toilet_data %>% 
+  left_join(var22, by = c("variable" = "name")) %>% 
+  select(-concept, -variable)
 
-# Join the toilet stats table from the Census with the variable names. Then do pivot_wider. 
-us_toilet_totals <- merge(x = toilet, y=var22, by.x = "variable", by.y = "name", all = FALSE) %>% select(-name, -concept, -variable) %>%  pivot_wider(names_from=label, values_from = c(estimate, moe), names_sep="_") %>%  janitor::clean_names() %>%  print()
+# Reshape and clean our column names
+us_toilet_totals <- toilet_data_labeled %>% 
+  pivot_wider(
+    names_from = label,
+    values_from = c(estimate, moe),
+    names_sep = "_"
+  ) %>% 
+  janitor::clean_names()
 
-# Fix column names
-names(us_toilet_totals) <- gsub("estimate_estimate", "estimate", names(us_toilet_totals)) %>%  print()
-                                
-names(us_toilet_totals) <- gsub("moe_estimate", "moe", names(us_toilet_totals)) %>%  print()
+# More fixes to column names
+us_toilet_totals <- us_toilet_totals %>% 
+  rename_with(~ gsub("estimate_estimate", "estimate", .x)) %>% 
+  rename_with(~ gsub("moe_estimate", "moe", .x))
 
-# Calculate percentages
-us_toilet_pcts1 <- us_toilet_totals %>% mutate(across(3:4, ~ (.x/us_toilet_totals$estimate_total)*100)) %>%  print()
+# Calculate percentages with mutate-across. 
+us_toilet_totals <- us_toilet_totals %>% 
+  mutate(across(
+    starts_with("estimate"), 
+    ~ .x / estimate_total * 100,
+    .names = "pct_{.col}"
+  ))
 
-names(us_toilet_pcts1)[c(3:4)] <- gsub("estimate_total", "pct", names(us_toilet_pcts1)[c(3:4)]) %>%  print()
+
+# View our processed data
+kable(head(us_toilet_totals), format = "markdown")
+
+# Let's make a chart
+ggplot(us_toilet_totals, aes(x = reorder(pct_estimate_complete_plumbing_facilities, -estimate_total), 
+                            y = pct_estimate_complete_plumbing_facilities)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Percentage of housing units with complete plumbing facilities",
+    x = "Percentage",
+    y = "Housing units"
+  )
 
 ```
 
@@ -167,14 +215,14 @@ Of those, the Census estimates that `r us_toilet_pcts1$pct_complete_plumbing_fac
 The Census estimates the remaining `r us_toilet_pcts1$pct_lacking_complete_plumbing_facilities`% lack complete plumbing facilities. 
 
 
-```{r state_data, eval=TRUE, echo=FALSE, include=FALSE}
+```{r state_data, eval = TRUE, echo = FALSE, include = FALSE}
 
 # Now, let's pull down the state-level data for our variables. 
 
 # Ping the Census API again using tidycensus. This time, we're grabbing state-level data. 
-states_toilet <- get_acs(geography = "state", year = 2022, survey = "acs5", variables = varlist_full, geometry = FALSE) %>%  janitor::clean_names() %>%  print()
+states_toilet <- get_acs(geography  =  "state", year  =  2022, survey  =  "acs5", variables  =  varlist_full, geometry  =  FALSE) %>%  janitor::clean_names() %>%  print()
 
-state_toilet_totals <- merge(x = states_toilet, y=var22, by.x = "variable", by.y = "name", all = FALSE) %>% select(-concept, -variable) %>%  pivot_wider(names_from=label, values_from = c(estimate, moe), names_sep="_") %>%  janitor::clean_names() %>%  print()
+state_toilet_totals <- merge(x  =  states_toilet, y = var22, by.x  =  "variable", by.y  =  "name", all  =  FALSE) %>% select(-concept, -variable) %>%  pivot_wider(names_from = label, values_from  =  c(estimate, moe), names_sep = "_") %>%  janitor::clean_names() %>%  print()
 
 names(state_toilet_totals) <- gsub("estimate_estimate", "estimate", names(state_toilet_totals)) %>%  print()
                                 
@@ -194,26 +242,26 @@ state_toilet_pcts2 <- state_toilet_pcts1 %>%   select(-moe_total, -moe_total_com
 
 state_toilet_pcts2$pct_complete_copy <- state_toilet_pcts2$pct_complete_plumbing_facilities %>% print()
 
-state_ranks_toilet <- state_toilet_pcts2 %>% mutate(across(9, ~ rank(-.x, na.last = TRUE, ties.method = c("min"))), .keep = "all") %>%  rename(rank_nationally_pct_complete=pct_complete_copy) %>% print()
+state_ranks_toilet <- state_toilet_pcts2 %>% mutate(across(9, ~ rank(-.x, na.last  =  TRUE, ties.method  =  c("min"))), .keep  =  "all") %>%  rename(rank_nationally_pct_complete = pct_complete_copy) %>% print()
 
-graphic_caption <- paste0("Graphic by ", my_name, collapse="") %>% print()
+graphic_caption <- paste0("Graphic by ", my_name, collapse = "") %>% print()
 
 # Note that this color scheme of skyblue and orange is stolen from The R Graph Gallery. It's just so darn pretty. Be sure to check them out at https://www.r-graph-gallery.com/4-barplot-with-error-bar.html
 
 states_barplot <- ggplot(state_toilet_pcts2) +
-    geom_bar( aes(x=reorder(name, pct_complete_plumbing_facilities), y=pct_complete_plumbing_facilities), stat="identity", fill="skyblue", alpha=0.7) +
-    geom_errorbar( aes(x=reorder(name,pct_complete_plumbing_facilities), ymin=pct_complete_plumbing_facilities-complete_moe_pct, ymax=pct_complete_plumbing_facilities+complete_moe_pct), width=0.4, colour="orange", alpha=0.9, linewidth=1.3) +
+    geom_bar( aes(x = reorder(name, pct_complete_plumbing_facilities), y = pct_complete_plumbing_facilities), stat = "identity", fill = "skyblue", alpha = 0.7) +
+    geom_errorbar( aes(x = reorder(name,pct_complete_plumbing_facilities), ymin = pct_complete_plumbing_facilities-complete_moe_pct, ymax = pct_complete_plumbing_facilities+complete_moe_pct), width = 0.4, colour = "orange", alpha = 0.9, linewidth = 1.3) +
   coord_flip() +
   labs(
-    title = "% of housing units with complete plumbing facilities by state",
-    subtitle = "From the 2022 ACS 5-year. Margins of error shown in orange. D.C. and\nPuerto Rico are included as states.",
-    caption = graphic_caption,
-    tag = "Figure 1",
-    x = "",
-    y = "Percentage of housing units with complete plumbing facilities",
-    colour = "Gears"
+    title  =  "% of housing units with complete plumbing facilities by state",
+    subtitle  =  "From the 2022 ACS 5-year. Margins of error shown in orange. D.C. and\nPuerto Rico are included as states.",
+    caption  =  graphic_caption,
+    tag  =  "Figure 1",
+    x  =  "",
+    y  =  "Percentage of housing units with complete plumbing facilities",
+    colour  =  "Gears"
   ) +
-  theme(axis.text.x=element_text(color = "black", size=8, angle=30, vjust=.8, hjust=0.8)) 
+  theme(axis.text.x = element_text(color  =  "black", size = 8, angle = 30, vjust = .8, hjust = 0.8)) 
 
 states_barplot
 
@@ -228,16 +276,16 @@ states_barplot
 
 ## State data
 
-The state with the best track record in this metric -- the state with the highest percentage of housing units with complete plumbing facilities -- is `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete==1) %>% pull(name)`. The ACS estimates that `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete==1) %>% pull(pct_complete_plumbing_facilities)`% of California homes have all the necessary plumbing features. 
+The state with the best track record in this metric -- the state with the highest percentage of housing units with complete plumbing facilities -- is `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete =  = 1) %>% pull(name)`. The ACS estimates that `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete =  = 1) %>% pull(pct_complete_plumbing_facilities)`% of California homes have all the necessary plumbing features. 
 
-Sitting in the last slot on the list -- position No. 52, since the table includes the District of Columbia and Puerto Rico -- is `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete==52) %>% pull(name)`, for which the Census estimates `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete==52) %>% pull(pct_complete_plumbing_facilities)`% of housing units have fully functional plumbing. 
+Sitting in the last slot on the list -- position No. 52, since the table includes the District of Columbia and Puerto Rico -- is `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete =  = 52) %>% pull(name)`, for which the Census estimates `r state_ranks_toilet %>%  filter(rank_nationally_pct_complete =  = 52) %>% pull(pct_complete_plumbing_facilities)`% of housing units have fully functional plumbing. 
 
 Let's take a look at all 50 states, in alphabetical order. Note that there should be a graphic below this table that visualizes the percentage complete.
 
-`r knitr::kable(state_ranks_toilet[order(state_ranks_toilet$name, decreasing=FALSE),c(2,3,4,7,5,9)],  col.names=c("State", "Total housing units", "% w/complete plumbing facilities", "Margin of error for % complete (in pctg pts)", "% lacking complete plumbing facilities", "Rank in % complete facilities"), digits=1, caption="Housing units with complete facilities by state", format.args = list(big.mark = ",", scientific = FALSE))`
+`r knitr::kable(state_ranks_toilet[order(state_ranks_toilet$name, decreasing = FALSE),c(2,3,4,7,5,9)],  col.names = c("State", "Total housing units", "% w/complete plumbing facilities", "Margin of error for % complete (in pctg pts)", "% lacking complete plumbing facilities", "Rank in % complete facilities"), digits = 1, caption = "Housing units with complete facilities by state", format.args  =  list(big.mark  =  ",", scientific  =  FALSE))`
 
 
-```{r state_data_plot, eval=TRUE, echo=FALSE, include=TRUE, fig.width=7,fig.height=10}
+```{r state_data_plot, eval = TRUE, echo = FALSE, include = TRUE, fig.width = 7,fig.height = 10}
 
 # This will tell knitr to include the barplot in the knitted output. 
 states_barplot
@@ -246,14 +294,14 @@ states_barplot
 ```
 
 
-```{r county_data, eval=TRUE, echo=FALSE, include=FALSE}
+```{r county_data, eval = TRUE, echo = FALSE, include = FALSE}
 
 # Now, let's pull down data for the county level. 
 
 # Let's go back and ping the Census API with tidycensus again. 
-county_toilet <- get_acs(geography = "county", year = 2022, survey = "acs5", variables = varlist_full, geometry = FALSE) %>%  janitor::clean_names() %>%  print()
+county_toilet <- get_acs(geography  =  "county", year  =  2022, survey  =  "acs5", variables  =  varlist_full, geometry  =  FALSE) %>%  janitor::clean_names() %>%  print()
 
-county_toilet_totals <- merge(x = county_toilet, y=var22, by.x = "variable", by.y = "name", all = FALSE)%>% select(-concept, -variable) %>%  pivot_wider(names_from=label, values_from = c(estimate, moe), names_sep="_") %>%  janitor::clean_names() %>%  print()
+county_toilet_totals <- merge(x  =  county_toilet, y = var22, by.x  =  "variable", by.y  =  "name", all  =  FALSE)%>% select(-concept, -variable) %>%  pivot_wider(names_from = label, values_from  =  c(estimate, moe), names_sep = "_") %>%  janitor::clean_names() %>%  print()
 
 names(county_toilet_totals) <- gsub("estimate_estimate", "estimate", names(county_toilet_totals)) %>%  print()
                                 
@@ -271,57 +319,57 @@ names(county_toilet_pcts1)[c(4:5)] <- gsub("estimate_total_", "pct_", names(coun
   
 county_toilet_pcts2 <- county_toilet_pcts1 %>%   select(-moe_total, -moe_total_complete_plumbing_facilities, -moe_total_lacking_complete_plumbing_facilities) %>%  print()
 
-counties_percentile_most_complete <- mutate(county_toilet_pcts2, percentile_rank = ntile(county_toilet_pcts2$pct_complete_plumbing_facilities,100), state_name = (substr(geoid, 1,2) %>% fips(to = "Name"))) %>%  print()
+counties_percentile_most_complete <- mutate(county_toilet_pcts2, percentile_rank  =  ntile(county_toilet_pcts2$pct_complete_plumbing_facilities,100), state_name  =  (substr(geoid, 1,2) %>% fips(to  =  "Name"))) %>%  print()
 
 # In case you need a table of how many counties are in each state, total. 
-counties_percentile_most_complete %>% group_by(state_name) %>% summarize(total_counties_in_data_set=n()) %>% View()
+counties_percentile_most_complete %>% group_by(state_name) %>% summarize(total_counties_in_data_set = n()) %>% View()
 
 # Create table of states with at least 1 county in the 100th percentile. 
-states_w_at_least_1_county_in_100th <- counties_percentile_most_complete %>%  filter(percentile_rank==100) %>% group_by(state_name) %>% summarize(total_counties_in_100th_percentile=n()) %>% arrange(desc(total_counties_in_100th_percentile)) %>% print()
+states_w_at_least_1_county_in_100th <- counties_percentile_most_complete %>%  filter(percentile_rank =  = 100) %>% group_by(state_name) %>% summarize(total_counties_in_100th_percentile = n()) %>% arrange(desc(total_counties_in_100th_percentile)) %>% print()
 
-counties_percentile_most_complete %>%  filter(pct_complete_plumbing_facilities==100)
+counties_percentile_most_complete %>%  filter(pct_complete_plumbing_facilities =  = 100)
 
 # Create table of states with at least 1 county in the 100th percentile. 
-states_w_at_least_1_county_in_1st <- counties_percentile_most_complete %>%  filter(percentile_rank==1) %>% group_by(state_name) %>% summarize(total_counties_in_1st_percentile=n()) %>% arrange(desc(total_counties_in_1st_percentile)) %>% print()
+states_w_at_least_1_county_in_1st <- counties_percentile_most_complete %>%  filter(percentile_rank =  = 1) %>% group_by(state_name) %>% summarize(total_counties_in_1st_percentile = n()) %>% arrange(desc(total_counties_in_1st_percentile)) %>% print()
 
 glimpse(counties_percentile_most_complete)
 
 counties_percentile_most_complete$pct_lacking_complete_plumbing_facilities <- 100-counties_percentile_most_complete$pct_complete_plumbing_facilities
 # 
 # Create a barplot of the 100th percentile counties. 
-counties_100th_percentile_barplot <- ggplot(counties_percentile_most_complete %>%  filter(percentile_rank==100)) +
-    geom_bar( aes(x=reorder(name, pct_complete_plumbing_facilities), y=pct_complete_plumbing_facilities), stat="identity", fill="skyblue", alpha=0.7) +
-    geom_errorbar( aes(x=reorder(name,pct_complete_plumbing_facilities), ymin=pct_complete_plumbing_facilities-complete_moe_pct, ymax=pct_complete_plumbing_facilities+complete_moe_pct), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+counties_100th_percentile_barplot <- ggplot(counties_percentile_most_complete %>%  filter(percentile_rank =  = 100)) +
+    geom_bar( aes(x = reorder(name, pct_complete_plumbing_facilities), y = pct_complete_plumbing_facilities), stat = "identity", fill = "skyblue", alpha = 0.7) +
+    geom_errorbar( aes(x = reorder(name,pct_complete_plumbing_facilities), ymin = pct_complete_plumbing_facilities-complete_moe_pct, ymax = pct_complete_plumbing_facilities+complete_moe_pct), width = 0.4, colour = "orange", alpha = 0.9, size = 1.3) +
   coord_flip() +
   labs(
-    title = "Most toilet-heavy counties nationally",
-    subtitle = "For the counties in the 100th percentile nationally -- the 1%\nwith the best records in the Census metric on housing units\nwith complete plumbing facilities. From the 2022 ACS\n5-year. Margins of error shown in orange. D.C. and\nPuerto Rico are included as states in the full data set.",
-    caption = graphic_caption,
-    tag = "Figure 2",
-    x = "",
-    y = "Percentage of housing units with complete plumbing facilities",
-    colour = "Gears"
+    title  =  "Most toilet-heavy counties nationally",
+    subtitle  =  "For the counties in the 100th percentile nationally -- the 1%\nwith the best records in the Census metric on housing units\nwith complete plumbing facilities. From the 2022 ACS\n5-year. Margins of error shown in orange. D.C. and\nPuerto Rico are included as states in the full data set.",
+    caption  =  graphic_caption,
+    tag  =  "Figure 2",
+    x  =  "",
+    y  =  "Percentage of housing units with complete plumbing facilities",
+    colour  =  "Gears"
   ) +
-  theme(axis.text.x=element_text(color = "black", size=8, angle=30, vjust=.8, hjust=0.8)) 
+  theme(axis.text.x = element_text(color  =  "black", size = 8, angle = 30, vjust = .8, hjust = 0.8)) 
 
 # Show the barplot
 counties_100th_percentile_barplot
 
 # Create a barplot of the 1st percentile counties. 
-counties_1st_percentile_barplot <- ggplot(counties_percentile_most_complete %>%  filter(percentile_rank==1)) +
-    geom_bar( aes(x=reorder(name, pct_complete_plumbing_facilities), y=pct_complete_plumbing_facilities), stat="identity", fill="skyblue", alpha=0.7) +
-    geom_errorbar( aes(x=reorder(name,pct_complete_plumbing_facilities), ymin=pct_complete_plumbing_facilities-complete_moe_pct, ymax=pct_complete_plumbing_facilities+complete_moe_pct), width=0.4, colour="orange", alpha=0.9, size=1.3) +
+counties_1st_percentile_barplot <- ggplot(counties_percentile_most_complete %>%  filter(percentile_rank =  = 1)) +
+    geom_bar( aes(x = reorder(name, pct_complete_plumbing_facilities), y = pct_complete_plumbing_facilities), stat = "identity", fill = "skyblue", alpha = 0.7) +
+    geom_errorbar( aes(x = reorder(name,pct_complete_plumbing_facilities), ymin = pct_complete_plumbing_facilities-complete_moe_pct, ymax = pct_complete_plumbing_facilities+complete_moe_pct), width = 0.4, colour = "orange", alpha = 0.9, size = 1.3) +
   coord_flip() +
   labs(
-    title = "Where toilets are least available nationally",
-    subtitle = "For the counties in the 1st percentile nationally -- the 1%\nwith the worst records in the Census metric on\nhousing units with complete plumbing\nfacilities. From the 2022 ACS 5-year. Margins\nof error shown in orange.\nD.C. and Puerto Rico are included as states in the\nfull data set.",
-    caption = graphic_caption,
-    tag = "Figure 3",
-    x = "",
-    y = "Percentage of housing units with\ncomplete plumbing facilities",
-    colour = "Gears"
+    title  =  "Where toilets are least available nationally",
+    subtitle  =  "For the counties in the 1st percentile nationally -- the 1%\nwith the worst records in the Census metric on\nhousing units with complete plumbing\nfacilities. From the 2022 ACS 5-year. Margins\nof error shown in orange.\nD.C. and Puerto Rico are included as states in the\nfull data set.",
+    caption  =  graphic_caption,
+    tag  =  "Figure 3",
+    x  =  "",
+    y  =  "Percentage of housing units with\ncomplete plumbing facilities",
+    colour  =  "Gears"
   ) +
-  theme(axis.text.x=element_text(color = "black", size=8, angle=30, vjust=.8, hjust=0.8)) 
+  theme(axis.text.x = element_text(color  =  "black", size = 8, angle = 30, vjust = .8, hjust = 0.8)) 
 
 
 # TO-DO
@@ -334,21 +382,21 @@ counties_1st_percentile_barplot <- ggplot(counties_percentile_most_complete %>% 
 
 So, what county worries least about toilets and running water? 
 
-The Census Bureau estimates that `r nrow(counties_percentile_most_complete %>%  filter(pct_complete_plumbing_facilities==100))` counties nationwide have 100% complete plumbing facilities (keep in mind, this is just an estimate, for which each county also has a margin of error. So, Uncle Sam could always be off a bit here.)
+The Census Bureau estimates that `r nrow(counties_percentile_most_complete %>%  filter(pct_complete_plumbing_facilities =  = 100))` counties nationwide have 100% complete plumbing facilities (keep in mind, this is just an estimate, for which each county also has a margin of error. So, Uncle Sam could always be off a bit here.)
 
-There are `r nrow(county_toilet_totals)` counties in the full national Census data set, so to try to make comparisons across states, we'll divide the county data into percentiles (in other words, 100 buckets). The higher the number of the bucket a county lands in, the closer it is to the highest end of the scale. So, the `r nrow(counties_percentile_most_complete %>%  filter(percentile_rank==100))` counties in the 100th percentile have the best overall plumbing situation, and the counties in the 1st percentile have the worst. 
+There are `r nrow(county_toilet_totals)` counties in the full national Census data set, so to try to make comparisons across states, we'll divide the county data into percentiles (in other words, 100 buckets). The higher the number of the bucket a county lands in, the closer it is to the highest end of the scale. So, the `r nrow(counties_percentile_most_complete %>%  filter(percentile_rank =  = 100))` counties in the 100th percentile have the best overall plumbing situation, and the counties in the 1st percentile have the worst. 
 
 #### The top 1 percent: Toilets ... toilets everywhere
 
 Here's a quick summary of 100th percentile counties by state so you can look and quickly see if your state has any counties up there in the toilet stratosphere. 
 
-`r knitr::kable(states_w_at_least_1_county_in_100th <- counties_percentile_most_complete %>%  filter(percentile_rank==100) %>% group_by(state_name) %>% summarize(total_counties_in_100th_percentile=n()) %>% arrange(desc(total_counties_in_100th_percentile)), col.names=c("State", "Number of counties in 100th percentile"), digits=1, caption="States with at least 1 county in the 100th percentile")`
+`r knitr::kable(states_w_at_least_1_county_in_100th <- counties_percentile_most_complete %>%  filter(percentile_rank =  = 100) %>% group_by(state_name) %>% summarize(total_counties_in_100th_percentile = n()) %>% arrange(desc(total_counties_in_100th_percentile)), col.names = c("State", "Number of counties in 100th percentile"), digits = 1, caption = "States with at least 1 county in the 100th percentile")`
 
 Next, let's look at the actual counties in the 100th percentile. (Note: There is a bar chart showing the data from this table below the table.)
 
-`r knitr::kable((counties_percentile_most_complete %>%  filter(percentile_rank==100) %>% select(name, estimate_total, pct_complete_plumbing_facilities, pct_lacking_complete_plumbing_facilities)),  col.names=c("County", "Total housing units", "% w/complete plumbing facilities", "% lacking complete plumbing facilities"), digits=1, caption="Counties in the 100th percentile", format.args = list(big.mark = ",", scientific = FALSE))`
+`r knitr::kable((counties_percentile_most_complete %>%  filter(percentile_rank =  = 100) %>% select(name, estimate_total, pct_complete_plumbing_facilities, pct_lacking_complete_plumbing_facilities)),  col.names = c("County", "Total housing units", "% w/complete plumbing facilities", "% lacking complete plumbing facilities"), digits = 1, caption = "Counties in the 100th percentile", format.args  =  list(big.mark  =  ",", scientific  =  FALSE))`
 
-```{r counties_100th_percentile_barplot, eval=TRUE, echo=FALSE, include=TRUE, fig.height = 9}
+```{r counties_100th_percentile_barplot, eval = TRUE, echo = FALSE, include = TRUE, fig.height  =  9}
 
 # Tell knitr to show the 100th percentile barplot in the knitted output. 
 counties_100th_percentile_barplot
@@ -359,13 +407,13 @@ counties_100th_percentile_barplot
 
 Toilet-less on the tundra? Alaska has the greatest number of counties in this lowest-toileted group. 
 
-`r knitr::kable(states_w_at_least_1_county_in_1st <- counties_percentile_most_complete %>%  filter(percentile_rank==1) %>% group_by(state_name) %>% summarize(total_counties_in_1st_percentile=n()) %>% arrange(desc(total_counties_in_1st_percentile)), col.names=c("State", "Number of counties in 1st percentile"), digits=1, caption="States with at least 1 county in the 1st percentile")`
+`r knitr::kable(states_w_at_least_1_county_in_1st <- counties_percentile_most_complete %>%  filter(percentile_rank =  = 1) %>% group_by(state_name) %>% summarize(total_counties_in_1st_percentile = n()) %>% arrange(desc(total_counties_in_1st_percentile)), col.names = c("State", "Number of counties in 1st percentile"), digits = 1, caption = "States with at least 1 county in the 1st percentile")`
 
 The next table actually names the counties in the 1st percentile. 
 
-`r knitr::kable((counties_percentile_most_complete %>%  filter(percentile_rank==1) %>% select(name, estimate_total, pct_complete_plumbing_facilities, pct_lacking_complete_plumbing_facilities)),  col.names=c("County", "Total housing units", "% w/complete plumbing facilities", "% lacking complete plumbing facilities"), digits=1, caption="Counties with the lowest percentage of complete plumbing facilities in its housing units", format.args = list(big.mark = ",", scientific = FALSE))`
+`r knitr::kable((counties_percentile_most_complete %>%  filter(percentile_rank =  = 1) %>% select(name, estimate_total, pct_complete_plumbing_facilities, pct_lacking_complete_plumbing_facilities)),  col.names = c("County", "Total housing units", "% w/complete plumbing facilities", "% lacking complete plumbing facilities"), digits = 1, caption = "Counties with the lowest percentage of complete plumbing facilities in its housing units", format.args  =  list(big.mark  =  ",", scientific  =  FALSE))`
 
-```{r counties_1st_percentile_barplot, eval=TRUE, echo=FALSE, include=TRUE, fig.height = 9}
+```{r counties_1st_percentile_barplot, eval = TRUE, echo = FALSE, include = TRUE, fig.height  =  9}
 
 # Tell knitr to show the first-percentile barplot in the knitted output. 
 counties_1st_percentile_barplot
@@ -374,12 +422,12 @@ counties_1st_percentile_barplot
 
 ***
 
-```{r places_data, eval=TRUE, echo=FALSE, include=FALSE}
+```{r places_data, eval = TRUE, echo = FALSE, include = FALSE}
 
 # Now to look at data by place. Note that this data is for the Census Bureau's definition of a "place," and that includes not just cities and towns and villages but also their equivalents across the nation as well as CDP's -- Census Designated Places, which are generally not incorporated (but some of them were incorporated at one time). If you want to take out 
 
 # We go back to the Census API with tidycensus again ... 
-place_toilet <- get_acs(geography = "place", year = 2022, survey = "acs5", variables = varlist_full, geometry = FALSE) %>%  janitor::clean_names() %>%  print()
+place_toilet <- get_acs(geography  =  "place", year  =  2022, survey  =  "acs5", variables  =  varlist_full, geometry  =  FALSE) %>%  janitor::clean_names() %>%  print()
 
 # Un-commenting-out this next line will remove the CDP's from the dataset.
 #place_toilet <- place_toilet %>%  filter(!str_detect(name, "CDP"))
@@ -387,7 +435,7 @@ place_toilet <- get_acs(geography = "place", year = 2022, survey = "acs5", varia
 # Un-commenting-out this next line will remove all places from the data set that are in Puerto Rico, if you just want to look at the 50 states and D.C.
 #place_toilet <- place_toilet %>%  filter(!str_detect(name, "Puerto Rico"))
 
-place_toilet_totals <- merge(x = place_toilet, y=var22, by.x = "variable", by.y = "name", all = FALSE) %>% select(-concept, -variable) %>%  pivot_wider(names_from=label, values_from = c(estimate, moe), names_sep="_") %>%  janitor::clean_names() %>%  print()
+place_toilet_totals <- merge(x  =  place_toilet, y = var22, by.x  =  "variable", by.y  =  "name", all  =  FALSE) %>% select(-concept, -variable) %>%  pivot_wider(names_from = label, values_from  =  c(estimate, moe), names_sep = "_") %>%  janitor::clean_names() %>%  print()
 
 names(place_toilet_totals) <- gsub("estimate_estimate", "estimate", names(place_toilet_totals)) %>%  print()
                                 
@@ -405,22 +453,22 @@ names(place_toilet_pcts1)[c(4:5)] <- gsub("estimate_total_", "pct_", names(place
   
 place_toilet_pcts2 <- place_toilet_pcts1 %>%   select(-moe_total, -moe_total_complete_plumbing_facilities, -moe_total_lacking_complete_plumbing_facilities) %>%  print()
 
-places_percentile_most_complete <- mutate(place_toilet_pcts2, percentile_rank = ntile(place_toilet_pcts2$pct_complete_plumbing_facilities,100), state_name = (substr(geoid, 1,2) %>% fips(to = "Name"))) %>%  print()
+places_percentile_most_complete <- mutate(place_toilet_pcts2, percentile_rank  =  ntile(place_toilet_pcts2$pct_complete_plumbing_facilities,100), state_name  =  (substr(geoid, 1,2) %>% fips(to  =  "Name"))) %>%  print()
 
-places_100th_percentile <- places_percentile_most_complete %>%  filter(percentile_rank==100)
+places_100th_percentile <- places_percentile_most_complete %>%  filter(percentile_rank =  = 100)
 
 # Write out to a CSV a file of places in the 100th percentile. 
 write.csv(places_100th_percentile, "complete_plumbing_facilities_2022_ACS_5year_places_100th_percentile.csv")
 
 # Create table of states with at least 1 place in the 100th percentile. 
-states_w_at_least_1_place_in_100th <- places_percentile_most_complete %>%  filter(percentile_rank==100) %>% group_by(state_name) %>% summarize(places_in_100th_percentile=n()) %>% arrange(desc(places_in_100th_percentile)) %>% print()
+states_w_at_least_1_place_in_100th <- places_percentile_most_complete %>%  filter(percentile_rank =  = 100) %>% group_by(state_name) %>% summarize(places_in_100th_percentile = n()) %>% arrange(desc(places_in_100th_percentile)) %>% print()
 
-places_1st_percentile <- places_percentile_most_complete %>%  filter(percentile_rank==1)
+places_1st_percentile <- places_percentile_most_complete %>%  filter(percentile_rank =  = 1)
 
 # Write out to a CSV a file of places in the first percentile. 
 write.csv(places_1st_percentile, "complete_plumbing_facilities_2022_ACS_5year_places_1st_percentile.csv")
 
-states_w_at_least_1_place_in_1st <- places_percentile_most_complete %>%  filter(percentile_rank==1) %>% group_by(state_name) %>% summarize(places_in_1st_percentile=n()) %>% arrange(desc(places_in_1st_percentile)) %>% print()
+states_w_at_least_1_place_in_1st <- places_percentile_most_complete %>%  filter(percentile_rank =  = 1) %>% group_by(state_name) %>% summarize(places_in_1st_percentile = n()) %>% arrange(desc(places_in_1st_percentile)) %>% print()
 
 ```
 
@@ -432,15 +480,15 @@ There are `r nrow(place_toilet_pcts2)` total places in the Census data nationwid
 
 To remedy that, the script that creates this summary should create two CSV files in your current working directory, one for the places in the 100th percentile, the other for the places in the first percentile. 
 
-But since most of you using this script will be journalists who are trying to quickly localize a story or find a local angle on this data, here's a quick table that names off the `r nrow(places_percentile_most_complete %>%  filter(percentile_rank==100) %>% group_by(state_name) %>% summarize(places_in_100th_percentile=n()))` states that have at least one place in the rarified air of the 100th percentile. 
+But since most of you using this script will be journalists who are trying to quickly localize a story or find a local angle on this data, here's a quick table that names off the `r nrow(places_percentile_most_complete %>%  filter(percentile_rank =  = 100) %>% group_by(state_name) %>% summarize(places_in_100th_percentile = n()))` states that have at least one place in the rarified air of the 100th percentile. 
 
-`r knitr::kable(states_w_at_least_1_place_in_100th,  col.names=c("State", "Places in 100th percentile"), digits=1, caption="States with at least 1 place in 100th percentile", format.args = list(big.mark = ",", scientific = FALSE))`
+`r knitr::kable(states_w_at_least_1_place_in_100th,  col.names = c("State", "Places in 100th percentile"), digits = 1, caption = "States with at least 1 place in 100th percentile", format.args  =  list(big.mark  =  ",", scientific  =  FALSE))`
 
-Next, let's look at the `r nrow(places_percentile_most_complete %>%  filter(percentile_rank==1) %>% group_by(state_name) %>% summarize(places_in_1st_percentile=n()))` states that have at least one place in the first percentile. 
+Next, let's look at the `r nrow(places_percentile_most_complete %>%  filter(percentile_rank =  = 1) %>% group_by(state_name) %>% summarize(places_in_1st_percentile = n()))` states that have at least one place in the first percentile. 
 
-`r knitr::kable(states_w_at_least_1_place_in_1st,  col.names=c("State", "Places in 1st percentile"), digits=1, caption="States with at least 1 place in 1st percentile", format.args = list(big.mark = ",", scientific = FALSE))`
+`r knitr::kable(states_w_at_least_1_place_in_1st,  col.names = c("State", "Places in 1st percentile"), digits = 1, caption = "States with at least 1 place in 1st percentile", format.args  =  list(big.mark  =  ",", scientific  =  FALSE))`
 
-```{r last_section, eval=TRUE, echo=FALSE, include=FALSE}
+```{r last_section, eval = TRUE, echo = FALSE, include = FALSE}
 #30
 
 ```
