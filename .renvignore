@@ -1,0 +1,5 @@
+renv/library/
+renv/staging/
+output/
+world_toilet_day_report.Rmd
+world_toilet_day_revision_in_progress.Rmd

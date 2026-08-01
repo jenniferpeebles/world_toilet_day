@@ -1,0 +1,166 @@
+---
+title: "World Toilet Day: Complete plumbing access in the United States"
+author: "Jennifer Peebles, The Atlanta Journal-Constitution"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+params:
+  data_year: 2024
+  output_root: "output"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
+)
+
+library(tidyverse)
+library(knitr)
+
+data_path <- file.path(params$output_root, "data")
+graphics_path <- file.path(params$output_root, "graphics")
+
+read_plumbing_output <- function(geography) {
+  readr::read_csv(
+    file.path(
+      data_path,
+      paste0("b25047_", geography, "_", params$data_year, ".csv")
+    ),
+    show_col_types = FALSE
+  )
+}
+
+us <- read_plumbing_output("us")
+states <- read_plumbing_output("state")
+counties <- read_plumbing_output("county")
+places <- read_plumbing_output("place")
+qa <- readr::read_csv(
+  file.path(data_path, "qa_summary.csv"),
+  show_col_types = FALSE
+)
+```
+
+## National overview
+
+The Census Bureau estimates that `r scales::comma(us$lacking)` housing
+housing units lacked complete plumbing facilities in the United States in the
+`r params$data_year - 4`–`r params$data_year` American Community Survey
+five-year period. That represents `r scales::percent(us$pct_lacking,
+accuracy = 0.1)` of housing units, with a 90% confidence interval from
+`r scales::percent(us$pct_lacking_ci_low, accuracy = 0.1)` to
+`r scales::percent(us$pct_lacking_ci_high, accuracy = 0.1)`.
+
+## State pattern
+
+```{r state-map, out.width="100%"}
+knitr::include_graphics(
+  file.path(
+    graphics_path,
+    paste0("map_states_pct_lacking_", params$data_year, ".jpg")
+  )
+)
+```
+
+```{r state-table}
+states %>%
+  arrange(desc(pct_lacking)) %>%
+  select(
+    State = name_clean,
+    `Housing units lacking complete plumbing` = lacking,
+    `Percent lacking` = pct_lacking,
+    `90% MOE` = pct_lacking_moe,
+    Reliability = pct_lacking_reliability
+  ) %>%
+  slice_head(n = 10) %>%
+  mutate(
+    `Housing units lacking complete plumbing` =
+      scales::comma(`Housing units lacking complete plumbing`),
+    `Percent lacking` = scales::percent(
+      `Percent lacking`,
+      accuracy = 0.1
+    ),
+    `90% MOE` = scales::percent(`90% MOE`, accuracy = 0.1)
+  ) %>%
+  knitr::kable(
+    caption = "States with the largest estimated shares lacking complete plumbing"
+  )
+```
+
+## County and place maps
+
+```{r county-map, out.width="100%"}
+knitr::include_graphics(
+  file.path(
+    graphics_path,
+    paste0("map_counties_pct_lacking_", params$data_year, ".jpg")
+  )
+)
+```
+
+```{r place-map, out.width="100%"}
+knitr::include_graphics(
+  file.path(
+    graphics_path,
+    paste0("map_places_pct_lacking_", params$data_year, ".jpg")
+  )
+)
+```
+
+## Reliability and QA
+
+ACS figures are estimates. The Census Bureau publishes a 90% margin of error
+for each estimate. This project also calculates confidence bounds,
+zero-overlap flags and coefficients of variation.
+
+```{r qa-table}
+qa %>%
+  select(
+    Geography = geography,
+    Rows = rows,
+    `CI overlaps zero: percent lacking` =
+      pct_lacking_ci_overlaps_zero,
+    `Low reliability: percent lacking` =
+      pct_lacking_low_reliability,
+    `Not classifiable: percent lacking` =
+      pct_lacking_not_classifiable
+  ) %>%
+  knitr::kable(caption = "Quality-assurance summary")
+```
+
+## Disease context
+
+Typhoid, paratyphoid and cholera once killed thousands of Americans at a time.
+Modern public water and sanitation systems, vaccination and medical treatment
+helped make these diseases rare in the United States.
+
+The CDC surveillance figures below are descriptive historical context only.
+They are not joined to or correlated with the ACS plumbing data. Most recent
+U.S. typhoid and cholera cases are associated with international travel.
+
+```{r cdc-context, out.width="100%"}
+cdc_graphic <- file.path(
+  graphics_path,
+  "cdc_typhoid_cholera_context.jpg"
+)
+
+if (file.exists(cdc_graphic)) {
+  knitr::include_graphics(cdc_graphic)
+} else {
+  cat(
+    "Run `source(\"98_run_cdc_context.R\")` to create the optional ",
+    "CDC context graphic."
+  )
+}
+```
+
+## Sources and methodology
+
+Plumbing estimates come from U.S. Census Bureau American Community Survey
+table B25047, using the `r params$data_year - 4`–`r params$data_year`
+five-year estimates. Disease context comes from the CDC National Notifiable
+Diseases Surveillance System weekly tables and remains provisional.
