@@ -70,6 +70,13 @@ Bureau publishes margins of error for each metric presented here. Always
 remember, the smaller the sample the estimate is taken from, the wider the
 margin of error.
 
+<img
+  src="images/readme/historical_plumbing_snapshot_2009.jpg"
+  alt="National 2005–2009 ACS estimate of housing units lacking complete plumbing under the earlier three-part definition"
+  width="420"
+  align="right"
+/>
+
 But just to be clear, despite my attempts at toilet humor here, we're not
 actually counting toilets per se. The ACS questionnaire asks people
 if their home has "complete" plumbing facilities, which the Census defined
@@ -82,6 +89,8 @@ have, or lack, complete plumbing facilities. See the Census Bureau's
 Much of the data in this summary specifically comes from ACS table B25047,
 [which you can read more about here](https://censusreporter.org/tables/B25047/),
 "Plumbing Facilities for All Housing Units."
+
+<br clear="right">
 
 ### About the CDC data
 
@@ -133,6 +142,8 @@ The pipeline:
 The state maps reposition Alaska and Hawaii beneath the lower 48 so we do not end up
 with a gigantic Alaska floating far away from everybody else and squashing the
 rest of the country into the corner.
+
+![Map showing the estimated share of housing units lacking complete plumbing in each state and the District of Columbia](images/readme/state_plumbing_map_2024.jpg)
 
 Like most of the code you'll find here on GitHub, this is a work in progress.
 There are always improvements I would like to make. The 390 places in the 2023
@@ -207,11 +218,13 @@ When all that is done, open `world_toilet_day_public_script.Rproj` in RStudio.
     prepares the standalone snapshot without making a modern comparison
 13. `13_visualize_historical_snapshot.R` -- national historical-context chart
 14. `14_render_report.R` -- renders the compact HTML report
-15. `15_run_tests.R` -- runs the automated integration tests
-16. `20_import_cdc_context.R` -- optional CDC disease-surveillance retrieval
-17. `21_visualize_cdc_context.R` -- optional CDC trend chart and exports
-18. `98_run_cdc_context.R` -- runs only the optional CDC context module
-19. `99_run_pipeline.R` -- runs the whole shebang in order
+15. `16_publish_readme_graphics.R` -- exports the two tracked JPEGs embedded in
+    this README
+16. `17_run_tests.R` -- runs the automated integration tests
+17. `20_import_cdc_context.R` -- optional CDC disease-surveillance retrieval
+18. `21_visualize_cdc_context.R` -- optional CDC trend chart and exports
+19. `98_run_cdc_context.R` -- runs only the optional CDC context module
+20. `99_run_pipeline.R` -- runs the whole shebang in order
 
 Generated files are written to:
 

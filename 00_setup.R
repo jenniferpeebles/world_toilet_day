@@ -82,7 +82,8 @@ paths <- list(
   graphics = file.path(project_root, "output", "graphics"),
   geojson = file.path(project_root, "output", "geojson"),
   interactive = file.path(project_root, "output", "interactive"),
-  logs = file.path(project_root, "output", "logs")
+  logs = file.path(project_root, "output", "logs"),
+  readme_images = file.path(project_root, "images", "readme")
 )
 
 invisible(

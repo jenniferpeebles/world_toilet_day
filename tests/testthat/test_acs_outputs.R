@@ -295,3 +295,22 @@ testthat::test_that("historical snapshot is national and noncomparative", {
   testthat::expect_true(file.exists(historical_graphic))
   testthat::expect_gt(file.info(historical_graphic)$size, 0)
 })
+
+testthat::test_that("tracked README graphics exist and are nonempty", {
+  readme_graphics <- file.path(
+    test_project_root,
+    "images",
+    "readme",
+    c(
+      paste0("state_plumbing_map_", data_year, ".jpg"),
+      paste0(
+        "historical_plumbing_snapshot_",
+        historical_data_year,
+        ".jpg"
+      )
+    )
+  )
+
+  testthat::expect_true(all(file.exists(readme_graphics)))
+  testthat::expect_true(all(file.info(readme_graphics)$size > 10000))
+})

@@ -19,7 +19,8 @@ pipeline_scripts <- c(
   "12_prepare_historical_snapshot.R",
   "13_visualize_historical_snapshot.R",
   "14_render_report.R",
-  "15_run_tests.R"
+  "16_publish_readme_graphics.R",
+  "17_run_tests.R"
 )
 
 run_logged_pipeline(
