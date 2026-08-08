@@ -1,0 +1,32 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+output/
+renv/library/
+renv/staging/
+renv/local/
+.tools/
+
+# Local environment variables and secrets
+.Renviron
+.Renviron.*
+!.Renviron.example
+.env
+.env.*
+!.env.example
+*.env
+
+# Local virtual environments
+env/
+.env/
+venv/
+.venv/
+
+# Credential and secret files
+credentials.*
+secrets.*
+!credentials.example
+!secrets.example
+*.pem
+*.key
