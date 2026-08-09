@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this project, please cite it using the metadata below."
+title: "World Toilet Day: U.S. plumbing access data pipeline"
+type: software
+authors:
+  - family-names: "Peebles"
+    given-names: "Jennifer"
+repository-code: "https://github.com/jenniferpeebles/world_toilet_day"
+url: "https://github.com/jenniferpeebles/world_toilet_day"
+license: MIT
+abstract: >-
+  A reproducible R pipeline for retrieving, checking, analyzing and visualizing
+  U.S. plumbing-access estimates from the American Community Survey, with a
+  separate optional module providing national disease-surveillance context
+  from the Centers for Disease Control and Prevention.
+keywords:
+  - American Community Survey
+  - CDC
+  - plumbing access
+  - public health
+  - reproducible research
+  - R

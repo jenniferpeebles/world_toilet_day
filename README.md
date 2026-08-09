@@ -254,5 +254,28 @@ Its SHA-256 checksum at the time of the migration was:
 08332731D41702439EEE0D2BA8174F1414BB8A2B37E80D39546C99E1117B60F5
 ```
 
+### License, attribution and reuse
+
+The original code, documentation and project-generated graphics in this
+repository are available under the [MIT License](LICENSE), unless a file says
+otherwise. If you use or adapt the project, please preserve the copyright and
+license notice. GitHub also provides the citation information in
+[`CITATION.cff`](CITATION.cff).
+
+The underlying federal data are not mine. ACS estimates come from the
+[U.S. Census Bureau](https://www.census.gov/programs-surveys/acs), and the
+optional disease-surveillance figures come from the CDC's
+[National Notifiable Diseases Surveillance System](https://www.cdc.gov/nndss/about/index.html).
+Please identify those agencies as the data sources when reproducing results.
+Their data and other agency materials retain their original legal status and
+are not relicensed by this repository. Third-party packages, map tiles and
+linked materials remain subject to their own licenses or terms.
+
+This is an independent project. References to the Census Bureau, CDC, HHS or
+other agencies do not imply that those agencies endorse this project, its
+author or its conclusions. The analysis is provided as-is, and users should
+consult the source agencies for the most current official figures and
+guidance.
+
 The text in this README file and in the script has not been copy edited, so
 please forgive all typos and style errors. Suggestions are always welcome.
